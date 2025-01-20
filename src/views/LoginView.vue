@@ -1,36 +1,64 @@
 <script setup>
+import Header from "../components/Header.vue";
+import Footer from "../components/Footer.vue";
 import { RouterLink, useRouter } from 'vue-router';
 import { ref } from 'vue';
+import { useStore } from "../stores/counter";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "../firebase"
 
+const store = useStore();
 const router = useRouter();
+const email = ref('');
 const password = ref('');
 
-const handleLogin = () => {
-  if (password.value === "popper927") {
+const loginByEmail = async () => {
+  try {
+    const user = (await signInWithEmailAndPassword(auth, email.value, password.value)).user;
+    store.user = user;
     router.push("/movies");
-  } else {
-    alert("Invalid Password");
+  } catch (error) {
+    console.log(error);
+    alert("Error occurred when signing in using email!");
   }
 };
+
+const loginByGoogle = async () => {
+  try {
+    const userCredential = await signInWithPopup(auth, new GoogleAuthProvider());
+    const user = userCredential.user;
+
+    if (store.user && store.user.email === user.email) {
+      store.user = user;
+      router.push("/movies");
+    } else {
+      alert("Account not registered.");
+      router.push("/register");
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Error signing in with Google!");
+  }
+};
+
 </script>
 
 <template>
+  <Header />
   <div class="hero">
     <div class="overlay">
-      <div class="navbar">
-        <img src="../assets/Black And White Modern Typographic Simple Virus Apparel Logo (7 x 11 in) (40 x 40 px) (70 x 40 px).png" alt="">
-        <RouterLink to="/register" class="button register">Register</RouterLink>
-      </div>
       <div class="form-container">
         <h2>Login to Your Account</h2>
-        <form @submit.prevent="handleLogin">
-          <input type="email" placeholder="Email" class="input-field" required />
-          <input v-model:="password" type="password" placeholder="Password" class="input-field" required />
-          <button type="submit" class="button login">Login</button>
+        <form @submit.prevent="loginByEmail">
+          <input v-model="email" type="email" placeholder="Email" class="input-field" required />
+          <input v-model="password" type="password" placeholder="Password" class="input-field" required />
+          <button @click="loginByEmail()"type="submit" class="button login">Login</button>
         </form>
+        <button @click="loginByGoogle()" type="submit" class="button login">Login by Google</button>
       </div>
     </div>
   </div>
+  <Footer />
 </template>
 
 <style scoped>
